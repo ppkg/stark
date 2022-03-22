@@ -1,0 +1,14 @@
+.vscode
+.idea
+/.idea
+*.sum
+*.exe
+/go.sum
+/.idea/workspace.xml
+__debug_bin
+services/appsetting.toml
+tasks/appsetting.toml
+*.code-workspace
+*.log
+.gitlab-ci.yml
+vendor/*
