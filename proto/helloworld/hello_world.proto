@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package helloworld;
 
+option go_package = "./proto/helloworld";
+
 import "google/api/annotations.proto";
 
 // Here is the overall greeting service definition where we define all our

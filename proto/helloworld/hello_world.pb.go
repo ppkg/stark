@@ -4,13 +4,9 @@
 package helloworld
 
 import (
-	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -113,7 +109,7 @@ func init() {
 func init() { proto.RegisterFile("helloworld/hello_world.proto", fileDescriptor_9ba04d5dfa167b20) }
 
 var fileDescriptor_9ba04d5dfa167b20 = []byte{
-	// 201 bytes of a gzipped FileDescriptorProto
+	// 212 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0xc9, 0x48, 0xcd, 0xc9,
 	0xc9, 0x2f, 0xcf, 0x2f, 0xca, 0x49, 0xd1, 0x07, 0x33, 0xe3, 0xc1, 0x6c, 0xbd, 0x82, 0xa2, 0xfc,
 	0x92, 0x7c, 0x21, 0x2e, 0x84, 0xac, 0x94, 0x4c, 0x7a, 0x7e, 0x7e, 0x7a, 0x4e, 0xaa, 0x7e, 0x62,
@@ -125,88 +121,7 @@ var fileDescriptor_9ba04d5dfa167b20 = []byte{
 	0x09, 0x45, 0x72, 0x71, 0x04, 0x27, 0x56, 0x82, 0x75, 0x09, 0x49, 0xe8, 0x21, 0x5c, 0xa3, 0x87,
 	0x6c, 0x99, 0x94, 0x18, 0x16, 0x99, 0x82, 0x9c, 0x4a, 0x25, 0xe9, 0xa6, 0xcb, 0x4f, 0x26, 0x33,
 	0x89, 0x2a, 0x09, 0xe8, 0x97, 0x19, 0xea, 0xa7, 0x56, 0x24, 0xe6, 0x16, 0xe4, 0xa4, 0xea, 0xa7,
-	0x26, 0x67, 0xe4, 0x5b, 0x31, 0x6a, 0x25, 0xb1, 0x81, 0x1d, 0x6e, 0x0c, 0x08, 0x00, 0x00, 0xff,
-	0xff, 0xc5, 0x00, 0x19, 0xf9, 0x02, 0x01, 0x00, 0x00,
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
-
-// GreeterClient is the client API for Greeter service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type GreeterClient interface {
-	// Sends a greeting
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
-}
-
-type greeterClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewGreeterClient(cc *grpc.ClientConn) GreeterClient {
-	return &greeterClient{cc}
-}
-
-func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
-	out := new(HelloReply)
-	err := c.cc.Invoke(ctx, "/helloworld.Greeter/SayHello", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// GreeterServer is the server API for Greeter service.
-type GreeterServer interface {
-	// Sends a greeting
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
-}
-
-// UnimplementedGreeterServer can be embedded to have forward compatible implementations.
-type UnimplementedGreeterServer struct {
-}
-
-func (*UnimplementedGreeterServer) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
-}
-
-func RegisterGreeterServer(s *grpc.Server, srv GreeterServer) {
-	s.RegisterService(&_Greeter_serviceDesc, srv)
-}
-
-func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GreeterServer).SayHello(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/helloworld.Greeter/SayHello",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GreeterServer).SayHello(ctx, req.(*HelloRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _Greeter_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "helloworld.Greeter",
-	HandlerType: (*GreeterServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SayHello",
-			Handler:    _Greeter_SayHello_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "helloworld/hello_world.proto",
+	0x26, 0x67, 0xe4, 0x5b, 0x31, 0x6a, 0x39, 0x89, 0x44, 0x09, 0xe9, 0xe9, 0x83, 0x1d, 0xaf, 0x8f,
+	0xd0, 0x9d, 0xc4, 0x06, 0x16, 0x31, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x70, 0xfa, 0xa5, 0x5d,
+	0x18, 0x01, 0x00, 0x00,
 }
