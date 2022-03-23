@@ -12,7 +12,7 @@ import (
 	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs"
-	gwRuntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	gwRuntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/ppkg/starter-grpc/server/gateway"
 	"github.com/ppkg/starter-grpc/server/option"
 	"golang.org/x/net/http2"

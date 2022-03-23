@@ -27,7 +27,7 @@ import (
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs"
 
-	hello_world "github.com/ppkg/starter-grpc/proto/helloworld"
+	"github.com/ppkg/starter-grpc/proto/helloworld"
 	_ "github.com/ppkg/starter-grpc/server"
 	"github.com/ppkg/starter-grpc/server/gateway"
 )
@@ -35,12 +35,12 @@ import (
 func init() {
 	gs.Object(new(GreeterServer)).Init(func(s *GreeterServer) {
 		gs.GrpcServer("helloworld.Greeter", &grpc.Server{
-			Register: hello_world.RegisterGreeterServer,
+			Register: helloworld.RegisterGreeterServer,
 			Service:  s,
 		})
 	})
 	gs.Object(&gateway.GatewayServer{
-		Register: hello_world.RegisterGreeterHandlerFromEndpoint,
+		Register: helloworld.RegisterGreeterHandlerFromEndpoint,
 	}).Name("gateway.greeter")
 }
 
@@ -48,9 +48,9 @@ type GreeterServer struct {
 	AppName string `value:"${spring.application.name}"`
 }
 
-func (s *GreeterServer) SayHello(ctx context.Context, in *hello_world.HelloRequest) (*hello_world.HelloReply, error) {
+func (s *GreeterServer) SayHello(ctx context.Context, in *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
 	log.Printf("Received: %v", in.GetName())
-	return &hello_world.HelloReply{Message: "Hello " + in.GetName() + " from " + s.AppName}, nil
+	return &helloworld.HelloReply{Message: "Hello " + in.GetName() + " from " + s.AppName}, nil
 }
 
 func main() {
