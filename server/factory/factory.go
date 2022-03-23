@@ -9,9 +9,11 @@ import (
 	"strings"
 
 	"github.com/go-spring/spring-base/log"
+	"github.com/go-spring/spring-base/util"
 	"github.com/go-spring/spring-core/grpc"
 	"github.com/go-spring/spring-core/gs"
-	gwRuntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
+	gwRuntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/ppkg/starter-grpc/server/gateway"
 	"github.com/ppkg/starter-grpc/server/option"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -20,12 +22,13 @@ import (
 
 // Starter gRPC 服务器启动器
 type Starter struct {
-	config  grpc.ServerConfig
-	server  *g.Server
-	mux     *http.ServeMux
-	gwMux   *gwRuntime.ServeMux
-	Servers *gs.GrpcServers   `autowire:""`
-	option  option.GrpcOption `autowire:""`
+	config      grpc.ServerConfig
+	server      *g.Server
+	mux         *http.ServeMux
+	gwMux       *gwRuntime.ServeMux
+	servers     *gs.GrpcServers          `autowire:""`
+	gwRegisters []*gateway.GatewayServer `autowire:""`
+	option      *option.GrpcOption       `autowire:"?"`
 }
 
 // NewStarter Starter 的构造函数
@@ -36,12 +39,16 @@ func NewStarter(config grpc.ServerConfig) *Starter {
 }
 
 func (starter *Starter) OnAppStart(ctx gs.Context) {
-	starter.server = g.NewServer(starter.option.ServerOptions...)
+	var ops []g.ServerOption
+	if starter.option != nil {
+		ops = starter.option.ServerOptions
+	}
+	starter.server = g.NewServer(ops...)
 
 	server := reflect.ValueOf(starter.server)
 	srvMap := make(map[string]reflect.Value)
 
-	starter.Servers.ForEach(func(serviceName string, rpcServer *grpc.Server) {
+	starter.servers.ForEach(func(serviceName string, rpcServer *grpc.Server) {
 		service := reflect.ValueOf(rpcServer.Service)
 		srvMap[serviceName] = service
 		fn := reflect.ValueOf(rpcServer.Register)
@@ -62,6 +69,8 @@ func (starter *Starter) OnAppStart(ctx gs.Context) {
 	// 初始化http多路复用器
 	starter.mux = http.NewServeMux()
 	starter.gwMux = gwRuntime.NewServeMux()
+	// 注册grpc-gateway
+	starter.registerGrpcGateway()
 
 	ctx.Go(func(_ context.Context) {
 		if err := starter.doServe(); err != nil {
@@ -76,8 +85,11 @@ func (starter *Starter) OnAppStop(ctx context.Context) {
 
 // 注册gprc gateway
 func (starter *Starter) registerGrpcGateway() {
-	// dialOpts := []g.DialOption{g.WithInsecure()}
-	// err := pb.RegisterSearchServiceHandlerFromEndpoint(context.Background(), gwmux, fmt.Sprintf("localhost:%d", starter.config.Port), dialOpts)
+	for _, s := range starter.gwRegisters {
+		dialOpts := []g.DialOption{g.WithInsecure()}
+		err := s.Register(context.Background(), starter.gwMux, fmt.Sprintf("localhost:%d", starter.config.Port), dialOpts)
+		util.Panic(err).When(err != nil)
+	}
 }
 
 // 运行服务
