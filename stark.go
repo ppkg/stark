@@ -53,7 +53,6 @@ type Application struct {
 	IsDebug     bool
 	LoadConfig  func() error
 	SetupVars   func() error
-	StopFunc    func() error
 	dbConnInfos map[string]DbConnInfo
 }
 
