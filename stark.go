@@ -8,18 +8,20 @@ import (
 )
 
 const (
-	AppTypeGrpc  = 1
-	AppTypeCron  = 2
-	AppTypeQueue = 3
-	AppTypeHttp  = 4
+	AppTypeWeb   = 1
+	AppTypeGrpc  = 2
+	AppTypeHttp  = 3
+	AppTypeCron  = 4
+	AppTypeQueue = 5
 )
 
 var (
 	AppTypeText = map[int32]string{
+		AppTypeWeb:   "Web",
 		AppTypeGrpc:  "gRPC",
+		AppTypeHttp:  "Http",
 		AppTypeCron:  "Cron",
 		AppTypeQueue: "Queue",
-		AppTypeHttp:  "Http",
 	}
 )
 
@@ -77,8 +79,8 @@ func (s *Application) GetDbConns() []DbConnInfo {
 	return list
 }
 
-// GRPCApplication ...
-type GrpcApplication struct {
+// WebApplication ...
+type WebApplication struct {
 	*Application
 	Port                     int64
 	TlsConfig                *tls.Config

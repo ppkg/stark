@@ -12,10 +12,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-// RunGrpcApplication runs grpc application.
-func RunGrpcApplication(application *stark.GrpcApplication) {
+// RunWebApplication runs http and grpc application.
+func RunWebApplication(application *stark.WebApplication) {
 	if application == nil || application.Application == nil {
-		panic("grpcApplication is nil or application is nil")
+		panic("webApplication is nil or application is nil")
 	}
 	// app instance once validate
 	err := appInstanceOnceValidate()
@@ -24,37 +24,37 @@ func RunGrpcApplication(application *stark.GrpcApplication) {
 		return
 	}
 
-	// 验证grpc应用参数
-	err = validateGrpcApplication(application)
+	// 验证web应用参数
+	err = validateWebApplication(application)
 	if err != nil {
 		log.Errorf("应用参数验证失败:%v", err)
 		return
 	}
 
-	application.Type = stark.AppTypeGrpc
-	stark.GrpcInstance = application
+	application.Type = stark.AppTypeWeb
+	stark.WebInstance = application
 
-	err = runGrpc(application)
+	err = runWeb(application)
 	if err != nil {
-		log.Errorf("运行Grpc服务异常:%+v", err)
+		log.Errorf("运行%s服务异常:%+v", stark.AppTypeText[application.Type], err)
 	}
 }
 
-// runGrpc runs grpc application.
-func runGrpc(grpcApp *stark.GrpcApplication) error {
+// runWeb runs http and grpc application.
+func runWeb(app *stark.WebApplication) error {
 	var err error
 
-	// 注入grpc配置参数
-	injectGrpcConfig(grpcApp)
+	// 注入http和grpc配置参数
+	injectWebConfig(app)
 
 	// 1. init application
-	err = initApplication(grpcApp.Application)
+	err = initApplication(app.Application)
 	if err != nil {
 		return err
 	}
 
-	// 2 init grpc vars
-	err = setupGrpcVars(grpcApp)
+	// 2 init http and grpc vars
+	err = setupWebVars(app)
 	if err != nil {
 		return err
 	}
@@ -62,30 +62,30 @@ func runGrpc(grpcApp *stark.GrpcApplication) error {
 	return gs.Run()
 }
 
-// 验证grpc应用参数
-func validateGrpcApplication(grpcApp *stark.GrpcApplication) error {
-	if grpcApp.Port == 0 {
+// 验证web应用参数
+func validateWebApplication(app *stark.WebApplication) error {
+	if app.Port == 0 {
 		return errors.New("端口号不能为空")
 	}
 	return nil
 }
 
-// 注入grpc配置参数
-func injectGrpcConfig(grpcApp *stark.GrpcApplication) {
-	gs.Property("spring.application.name", grpcApp.Name)
-	gs.Property("web.server.port", grpcApp.Port)
+// 注入web配置参数
+func injectWebConfig(app *stark.WebApplication) {
+	gs.Property("spring.application.name", app.Name)
+	gs.Property("web.server.port", app.Port)
 }
 
-// setupGrpcVars ...
-func setupGrpcVars(grpcApp *stark.GrpcApplication) error {
+// setupWebVars ...
+func setupWebVars(app *stark.WebApplication) error {
 	serverOptions := &option.GrpcServerOptions{}
-	serverOptions.Options = append(serverOptions.Options, grpcApp.ServerOptions...)
+	serverOptions.Options = append(serverOptions.Options, app.ServerOptions...)
 
 	var serverUnaryInterceptors []grpc.UnaryServerInterceptor
 	var serverStreamInterceptors []grpc.StreamServerInterceptor
 
-	serverUnaryInterceptors = append(serverUnaryInterceptors, grpcApp.UnaryServerInterceptors...)
-	serverStreamInterceptors = append(serverStreamInterceptors, grpcApp.StreamServerInterceptors...)
+	serverUnaryInterceptors = append(serverUnaryInterceptors, app.UnaryServerInterceptors...)
+	serverStreamInterceptors = append(serverStreamInterceptors, app.StreamServerInterceptors...)
 
 	if len(serverUnaryInterceptors) > 0 {
 		serverOptions.Options = append(serverOptions.Options, grpcMiddleware.WithUnaryServerChain(serverUnaryInterceptors...))

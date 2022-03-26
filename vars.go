@@ -2,5 +2,5 @@ package stark
 
 // this VARS user should only read
 
-// GRPCAppInstance is *GRPCApplication instance May be nil
-var GrpcInstance *GrpcApplication
+// WebInstance is *WebApplication instance May be nil
+var WebInstance *WebApplication
