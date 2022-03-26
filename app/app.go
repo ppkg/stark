@@ -76,6 +76,19 @@ func initApplication(application *stark.Application) error {
 	// 初始化运行环境
 	initRuntimeEnv(application)
 
+	// 加载默认配置
+	err = loadDefaultConfig()
+	if err != nil {
+		return err
+	}
+	// 加载用户配置
+	if application.LoadConfig != nil {
+		err = application.LoadConfig()
+		if err != nil {
+			return fmt.Errorf("application.LoadConfig err: %v", err)
+		}
+	}
+
 	// 安装组件
 	err = setupCommonVars(application)
 	if err != nil {
@@ -88,6 +101,11 @@ func initApplication(application *stark.Application) error {
 			return fmt.Errorf("application.SetupVars err: %v", err)
 		}
 	}
+	return nil
+}
+
+// 加载默认配置
+func loadDefaultConfig() error {
 	return nil
 }
 
