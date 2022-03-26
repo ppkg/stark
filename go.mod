@@ -44,6 +44,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/go-spring/spring-core v1.1.0-rc3 => github.com/ppkg/spring-core v1.2.2
+replace github.com/go-spring/spring-core v1.1.0-rc3 => github.com/ppkg/spring-core v1.2.3
 
 // replace github.com/go-spring/spring-core => /home/zihua/Documents/goPath/src/github.com/go-spring/spring-core
