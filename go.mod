@@ -9,6 +9,7 @@ require (
 	github.com/go-spring/spring-swag v1.1.0-rc3
 	github.com/go-spring/starter-echo v1.1.0-rc3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
+	github.com/labstack/gommon v0.3.0
 	github.com/maybgit/glog v0.1.22
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
 	github.com/swaggo/swag v1.8.0
@@ -40,7 +41,6 @@ require (
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/labstack/echo/v4 v4.6.1 // indirect
-	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
