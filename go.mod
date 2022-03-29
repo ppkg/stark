@@ -13,6 +13,7 @@ require (
 	github.com/maybgit/glog v0.1.22
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
 	github.com/swaggo/swag v1.8.0
+	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb
 	golang.org/x/net v0.0.0-20210913180222-943fd674d43e
 	google.golang.org/grpc v1.45.0
 	gorm.io/driver/mysql v1.3.2

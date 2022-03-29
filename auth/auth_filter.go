@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ppkg/stark/util"
+	"github.com/ucarion/urlpath"
 
 	"github.com/go-spring/spring-base/cast"
 	"github.com/go-spring/spring-base/log"
@@ -24,14 +25,36 @@ type AuthFilter struct {
 	// 认证失败回调
 	AuthFail func(ctx web.Context, err error)
 	// 获取需要认证app信息
-	GetApps func() ([]AppInfo, error)
+	GetApps          func() ([]AppInfo, error)
+	isInitUrlPattern bool
+	pathMatcher      []urlpath.Path
 }
 
-func (s *AuthFilter) URLPatterns() []string {
-	return s.UrlPatterns
+func (s *AuthFilter) isMatch(ctx web.Context) bool {
+	if !s.isInitUrlPattern {
+		s.pathMatcher = make([]urlpath.Path, 0, len(s.UrlPatterns))
+		for _, v := range s.UrlPatterns {
+			s.pathMatcher = append(s.pathMatcher, urlpath.New(v))
+		}
+	}
+
+	uri := ctx.Request().RequestURI
+	for _, v := range s.pathMatcher {
+		_, ok := v.Match(uri)
+		if ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *AuthFilter) Invoke(ctx web.Context, chain web.FilterChain) {
+	// 如果不符合过滤规则直接跳过
+	if !s.isMatch(ctx) {
+		chain.Next(ctx)
+		return
+	}
+
 	appId := s.getRequestParam(ctx, "appId")
 	sign := s.getRequestParam(ctx, "sign")
 
