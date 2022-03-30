@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ppkg/stark/util"
 	"github.com/ucarion/urlpath"
@@ -57,6 +59,15 @@ func (s *AuthFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 
 	appId := s.getRequestParam(ctx, "appId")
 	sign := s.getRequestParam(ctx, "sign")
+	timestamp:=s.getRequestParam(ctx,"timestamp")
+
+	// 如果时间戳不在半个小时范围内则直接丢失
+	if int(math.Abs(time.Since(time.Unix(cast.ToInt64(timestamp),0)).Minutes()))>30 {
+		if s.AuthFail != nil {
+			s.AuthFail(ctx, errors.New("时间戳已失效，有效时间为30分钟"))
+		}
+		return
+	}
 
 	apps, err := s.GetApps()
 	if err != nil {

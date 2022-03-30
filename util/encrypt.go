@@ -5,8 +5,8 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"sort"
-	"strconv"
 
+	"github.com/go-spring/spring-base/cast"
 	"github.com/labstack/gommon/log"
 )
 
@@ -16,7 +16,7 @@ func Sign(appId int32, secret string, biz map[string]string, requestBody ...stri
 		biz = make(map[string]string)
 	}
 	// appId参数加入到业务参数map对象
-	biz["appId"] = strconv.FormatInt(int64(appId), 10)
+	biz["appId"] = cast.ToString(appId)
 	//取出map所有key进行正序排序
 	keys := make([]string, 0, len(biz))
 	for k := range biz {
