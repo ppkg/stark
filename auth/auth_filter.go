@@ -192,7 +192,9 @@ func (s *AuthFilter) getRequestParam(ctx web.Context, key string) string {
 
 type AppInfo struct {
 	// 应用ID
-	Id int32
+	Id int32 `json:"id"`
 	// 密钥
-	Secret string
+	Secret string `json:"secret"`
+	// 应用名称
+	Name string `json:"name"`
 }
