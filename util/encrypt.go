@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/go-spring/spring-base/cast"
-	"github.com/labstack/gommon/log"
+	"github.com/go-spring/spring-base/log"
 )
 
 // 接口签名生成
