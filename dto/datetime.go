@@ -1,15 +1,14 @@
 package dto
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/ppkg/stark/enum"
 )
 
-type Date struct {
-	time.Time
-}
+type Date time.Time
 
 func (s *Date) UnmarshalJSON(data []byte) (err error) {
 	if len(data) == 0 {
@@ -19,24 +18,37 @@ func (s *Date) UnmarshalJSON(data []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	*s = Date{now}
+	*s = Date(now)
 	return
 }
 
 func (s Date) MarshalJSON() ([]byte, error) {
-	if s.Time.IsZero() {
+	myTime := time.Time(s)
+	if myTime.IsZero() {
 		return []byte(`""`), nil
 	}
 	b := make([]byte, 0, len(enum.DateTpl)+2)
 	b = append(b, '"')
-	b = s.Time.AppendFormat(b, enum.DateTpl)
+	b = myTime.AppendFormat(b, enum.DateTpl)
 	b = append(b, '"')
 	return b, nil
 }
 
-type DateTime struct {
-	time.Time
+func (s *Date) Scan(v interface{}) error {
+	switch vt := v.(type) {
+	case time.Time:
+		*s = Date(vt)
+	default:
+		return fmt.Errorf("can not convert %+v to time.Time", v)
+	}
+	return nil
 }
+
+func (s Date) String() string {
+	return time.Time(s).Format(enum.DateTimeTpl)
+}
+
+type DateTime time.Time
 
 func (s *DateTime) UnmarshalJSON(data []byte) (err error) {
 	if len(data) == 0 || reflect.DeepEqual(data, []byte("\"\"")) {
@@ -46,17 +58,32 @@ func (s *DateTime) UnmarshalJSON(data []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	*s = DateTime{now}
+	*s = DateTime(now)
 	return
 }
 
 func (s DateTime) MarshalJSON() ([]byte, error) {
-	if s.Time.IsZero() {
+	myTime := time.Time(s)
+	if myTime.IsZero() {
 		return []byte(`""`), nil
 	}
 	b := make([]byte, 0, len(enum.DateTimeTpl)+2)
 	b = append(b, '"')
-	b = s.Time.AppendFormat(b, enum.DateTimeTpl)
+	b = myTime.AppendFormat(b, enum.DateTimeTpl)
 	b = append(b, '"')
 	return b, nil
+}
+
+func (s *DateTime) Scan(v interface{}) error {
+	switch vt := v.(type) {
+	case time.Time:
+		*s = DateTime(vt)
+	default:
+		return fmt.Errorf("can not convert %+v to time.Time", v)
+	}
+	return nil
+}
+
+func (s DateTime) String() string {
+	return time.Time(s).Format(enum.DateTimeTpl)
 }
