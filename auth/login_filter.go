@@ -6,6 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/go-spring/spring-core/web"
 	"github.com/limitedlee/microservice/common/config"
@@ -13,13 +18,7 @@ import (
 	"github.com/maybgit/glog"
 	utils "github.com/ppkg/stark/util"
 	"github.com/ucarion/urlpath"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
-
-
 
 // 授权认证过滤器
 type LoginFilter struct {
@@ -27,9 +26,10 @@ type LoginFilter struct {
 	UrlPatterns []string
 	// 获取需要认证app信息
 	// 认证失败回调
-	AuthFail func(ctx web.Context,status int32 , err error)
-	pathMatcher      []urlpath.Path
-	RedisClient *redis.Client
+	AuthFail      func(ctx web.Context, status int32, err error)
+	isInitMatcher bool
+	pathMatcher   []urlpath.Path
+	RedisClient   *redis.Client
 }
 
 type LoginInfo struct {
@@ -40,41 +40,43 @@ type LoginInfo struct {
 type UserInfo struct {
 	ServiceResponse struct {
 		AuthenticationSuccess struct {
-			User string `json:"user"`
+			User       string `json:"user"`
 			Attributes struct {
-				ShrCode []string `json:"shrCode"`
-				IsFromNewLogin []bool `json:"isFromNewLogin"`
-				AuthenticationDate []float64 `json:"authenticationDate"`
-				UserNo []string `json:"userNo"`
-				SuccessfulAuthenticationHandlers []string `json:"successfulAuthenticationHandlers"`
-				Mobile []string `json:"mobile"`
-				Type []string `json:"type"`
-				CredentialType string `json:"credentialType"`
-				RealName []string `json:"realName"`
-				AuthenticationMethod string `json:"authenticationMethod"`
-				LongTermAuthenticationRequestTokenUsed []bool `json:"longTermAuthenticationRequestTokenUsed"`
-				ID []int `json:"id"`
-				Email []string `json:"email"`
-				Username []string `json:"username"`
+				ShrCode                                []string  `json:"shrCode"`
+				IsFromNewLogin                         []bool    `json:"isFromNewLogin"`
+				AuthenticationDate                     []float64 `json:"authenticationDate"`
+				UserNo                                 []string  `json:"userNo"`
+				SuccessfulAuthenticationHandlers       []string  `json:"successfulAuthenticationHandlers"`
+				Mobile                                 []string  `json:"mobile"`
+				Type                                   []string  `json:"type"`
+				CredentialType                         string    `json:"credentialType"`
+				RealName                               []string  `json:"realName"`
+				AuthenticationMethod                   string    `json:"authenticationMethod"`
+				LongTermAuthenticationRequestTokenUsed []bool    `json:"longTermAuthenticationRequestTokenUsed"`
+				ID                                     []int     `json:"id"`
+				Email                                  []string  `json:"email"`
+				Username                               []string  `json:"username"`
 			} `json:"attributes"`
 		} `json:"authenticationSuccess"`
-	} `json:"serviceResponse"`}
+	} `json:"serviceResponse"`
+}
 
 type UserInfoFailure struct {
 	ServiceResponse struct {
 		AuthenticationFailure struct {
-			Code string `json:"code"`
+			Code        string `json:"code"`
 			Description string `json:"description"`
 		} `json:"authenticationFailure"`
-	} `json:"serviceResponse"`}
+	} `json:"serviceResponse"`
+}
 
 type UserInfoAuth struct {
 	UserName string `json:"user_name"`
-	Email string `json:"email"`
-	ID int `json:"id"`
-	Mobile string `json:"mobile"`
+	Email    string `json:"email"`
+	ID       int    `json:"id"`
+	Mobile   string `json:"mobile"`
 	RealName string `json:"real_name"`
-	UserNo string `json:"user_no"`
+	UserNo   string `json:"user_no"`
 	UserAuth string `json:"user_auth"`
 }
 
@@ -93,12 +95,13 @@ type UserAuthResponse struct {
 	//提示
 	Message string `json:"message"`
 	//数据
-	AuthData`json:"data"`
+	AuthData `json:"data"`
 }
+
 //登入确认响应
 type LoginResponse struct {
 	//响应码
-	Code int32  `json:"code"`
+	Code int32 `json:"code"`
 	//消息
 	Message string `json:"message"`
 	//登录口令
@@ -107,15 +110,14 @@ type LoginResponse struct {
 	Auths string `json:"auths"`
 }
 
-
 //调用北京获取用户权限接口，将结果权限集缓存redis
 func GetUserAuthCollection(systemcode, memberid, structOuterCode string) (string, error) {
 	url := fmt.Sprintf("%s%s", config.GetString("bj-user-auth-url"), "/api/priv/list")
 
-	url=url+"?systemCode="+systemcode+"&userCode="+memberid+"&companyCode="+structOuterCode
+	url = url + "?systemCode=" + systemcode + "&userCode=" + memberid + "&companyCode=" + structOuterCode
 
 	//2：调用北京获取权限接口
-	data ,err:= utils.HttpGetUrlOMS(url)
+	data, err := utils.HttpGetUrlOMS(url)
 
 	if err != nil {
 		return "MapToJson转换出错", err
@@ -148,12 +150,11 @@ func createCommonBjAcpParam() map[string]interface{} {
 	return dataArr
 }
 
-
 func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 
 	// 如果符合不需要登录的直接跳过
-	urlReturn:=s.isMatch(ctx)
-	omsToken:=""
+	urlReturn := s.isMatch(ctx)
+	omsToken := ""
 	//请求的路径
 	w := ctx.ResponseWriter()
 	r := ctx.Request()
@@ -164,37 +165,37 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 		return
 		break
 	case 2:
-		cookie,_:=ctx.Request().Cookie("oms_token")
-		if cookie!=nil {
-			omsToken =cookie.Value
+		cookie, _ := ctx.Request().Cookie("oms_token")
+		if cookie != nil {
+			omsToken = cookie.Value
 		}
-		if omsToken =="" {
+		if omsToken == "" {
 			//如果没有token 直接返回失败，调用反返回401
-			s.AuthFail(ctx, 401,errors.New("用户没有登录！"))
+			s.AuthFail(ctx, 401, errors.New("用户没有登录！"))
 			//w.WriteHeader(401)
 			//w.Write([]byte("用户没有登录"))
 			return
-		}else {
+		} else {
 			//如果 omsToken 不为空，说明已经登录过的，解析token看是否过期,没有过期的话，重新续期
 
 			token := omsToken
 
 			_, err := utils.ValidateToken(token, jw.PublicKey)
 			if err != nil {
-				s.AuthFail(ctx, 401,errors.New(fmt.Sprintf("valid token required.%v", err)))
+				s.AuthFail(ctx, 401, errors.New(fmt.Sprintf("valid token required.%v", err)))
 				return
 			}
 			//判断token 是否失效
 			claims, err := utils.ParseAndGetPayload(token)
 			//获取redis进行匹配
-			RedisToken, err := s.RedisClient.Get(ctx.Context(),fmt.Sprintf("Oms:token:%s", claims["userno"])).Result()
+			RedisToken, err := s.RedisClient.Get(ctx.Context(), fmt.Sprintf("Oms:token:%s", claims["userno"])).Result()
 			if err != nil { //redis 获取失败
 				glog.Error("AuthFilter read redis err", err)
-				s.AuthFail(ctx, 401,errors.New("redis获取token失败,token失效"))
+				s.AuthFail(ctx, 401, errors.New("redis获取token失败,token失效"))
 				return
 			}
 			if RedisToken != token { //redis 不一致
-				s.AuthFail(ctx, 401,errors.New("token失效"))
+				s.AuthFail(ctx, 401, errors.New("token失效"))
 				return
 			}
 
@@ -203,7 +204,7 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 			cookie_token.Value = token
 			cookie_token.Path = "/"
 			//cookie有效期为3600秒
-			cookie_token.MaxAge = 2*86400
+			cookie_token.MaxAge = 2 * 86400
 			ctx.SetCookie(cookie_token)
 
 			cookie_user := new(http.Cookie)
@@ -211,13 +212,13 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 			cookie_user.Value = fmt.Sprintf("%s", claims["userno"])
 			cookie_user.Path = "/"
 			//cookie有效期为3600秒
-			cookie_user.MaxAge = 2*86400
+			cookie_user.MaxAge = 2 * 86400
 			ctx.SetCookie(cookie_user)
 
 			//缓存jwt
-			err=s.RedisClient.Set(ctx.Context(),fmt.Sprintf("Oms:token:%s", claims["userno"]),token,2*86400).Err()
+			err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("Oms:token:%s", claims["userno"]), token, 2*86400).Err()
 			if err != nil {
-				s.AuthFail(ctx, 500,errors.New("token缓存redis失败"))
+				s.AuthFail(ctx, 500, errors.New("token缓存redis失败"))
 				return
 			}
 
@@ -231,39 +232,39 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 		break
 	case 3:
 		//如果有ticket说明是跳转cas登录后的回调请求,就可以直接获取权限，否者跳转登录界面
-		ticket:=s.getRequestParam(ctx, "ticket")
-		Url:=s.getRequestParam(ctx, "url")
-		casUrl:=config.GetString("cas.login.url")
-		omsurl:=config.GetString("oms.login.url")
-		if ticket=="" {
+		ticket := s.getRequestParam(ctx, "ticket")
+		Url := s.getRequestParam(ctx, "url")
+		casUrl := config.GetString("cas.login.url")
+		omsurl := config.GetString("oms.login.url")
+		if ticket == "" {
 			//login_ticket  不存在的路由地址，只要调用的地址包含 login_ticket  就判断是调用登录直接拦截，走登录逻辑
-			returnUrl:=fmt.Sprintf("%s/cas/login?service=%s?url=%s",casUrl,omsurl,Url)
+			returnUrl := fmt.Sprintf("%s/cas/login?service=%s?url=%s", casUrl, omsurl, Url)
 			http.Redirect(w, r, returnUrl, http.StatusFound) //跳转到登录界面
 			return
-		}else {
+		} else {
 
 			//通过CAS登录接口验证，获取用户的手机，用户编码， 邮箱等信息
-			getUserInfoUrl:=fmt.Sprintf("%s/cas/p3/serviceValidate?format=json&ticket=%s&service=%s?url=%s",casUrl,ticket,omsurl,Url)
+			getUserInfoUrl := fmt.Sprintf("%s/cas/p3/serviceValidate?format=json&ticket=%s&service=%s?url=%s", casUrl, ticket, omsurl, Url)
 			data := utils.HttpGetUrl(getUserInfoUrl)
-			if len(data)>0 {
-				if strings.Contains(data,"authenticationFailure") {
+			if len(data) > 0 {
+				if strings.Contains(data, "authenticationFailure") {
 					info := UserInfoFailure{}
 					json.Unmarshal([]byte(data), &info)
-					s.AuthFail(ctx, 401,errors.New(info.ServiceResponse.AuthenticationFailure.Description))
+					s.AuthFail(ctx, 401, errors.New(info.ServiceResponse.AuthenticationFailure.Description))
 					return
 				}
-				
+
 				info := UserInfo{}
 				json.Unmarshal([]byte(data), &info)
 
-				user:=info.ServiceResponse.AuthenticationSuccess.Attributes
-				userInfoAuth:=UserInfoAuth{}
-				userInfoAuth.UserNo=user.UserNo[0]
-				userInfoAuth.ID=user.ID[0]
-				userInfoAuth.Email=user.Email[0]
-				userInfoAuth.Mobile=user.Mobile[0]
-				userInfoAuth.UserName=user.Username[0]
-				userInfoAuth.RealName=user.RealName[0]
+				user := info.ServiceResponse.AuthenticationSuccess.Attributes
+				userInfoAuth := UserInfoAuth{}
+				userInfoAuth.UserNo = user.UserNo[0]
+				userInfoAuth.ID = user.ID[0]
+				userInfoAuth.Email = user.Email[0]
+				userInfoAuth.Mobile = user.Mobile[0]
+				userInfoAuth.UserName = user.Username[0]
+				userInfoAuth.RealName = user.RealName[0]
 
 				//4:将权限数据存储到redis
 				systemCode := config.GetString("OmsSystemCode")
@@ -272,20 +273,20 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 
 				err := json.Unmarshal([]byte(authStr), &baseRes)
 				if autherr != nil || err != nil {
-					s.AuthFail(ctx, 500,errors.New("获取用户权限失败！"))
+					s.AuthFail(ctx, 500, errors.New("获取用户权限失败！"))
 					return
 				}
 				//2:重新组装jwt用户身份验证
 				jwtString, err := utils.CreateJwtToken(userInfoAuth.Mobile, userInfoAuth.UserNo, userInfoAuth.UserName)
 				if err != nil {
-					s.AuthFail(ctx, 500,errors.New("生成JWT失败！"))
+					s.AuthFail(ctx, 500, errors.New("生成JWT失败！"))
 					return
 				}
 
 				//缓存jwt
-				err=s.RedisClient.Set(ctx.Context(),fmt.Sprintf("Oms:token:%s", userInfoAuth.UserNo),jwtString,2*86400).Err()
+				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("Oms:token:%s", userInfoAuth.UserNo), jwtString, 2*86400).Err()
 				if err != nil {
-					s.AuthFail(ctx, 500,errors.New("token缓存redis失败"))
+					s.AuthFail(ctx, 500, errors.New("token缓存redis失败"))
 					return
 				}
 
@@ -294,7 +295,7 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				cookie.Value = jwtString
 				cookie.Path = "/"
 				//cookie有效期为3600秒
-				cookie.MaxAge = 2*86400
+				cookie.MaxAge = 2 * 86400
 				ctx.SetCookie(cookie)
 
 				cookie_user := new(http.Cookie)
@@ -302,19 +303,18 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				cookie_user.Value = userInfoAuth.UserNo
 				cookie_user.Path = "/"
 				//cookie有效期为3600秒
-				cookie_user.MaxAge = 2*86400
+				cookie_user.MaxAge = 2 * 86400
 				ctx.SetCookie(cookie_user)
 
 				//缓存用户权限信息
-				err=s.RedisClient.Set(ctx.Context(),fmt.Sprintf("Oms:auth:%s", userInfoAuth.UserNo),authStr,2*86400).Err()
+				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("Oms:auth:%s", userInfoAuth.UserNo), authStr, 2*86400).Err()
 				if err != nil {
-					s.AuthFail(ctx, 500,errors.New("缓存用户权限失败"))
+					s.AuthFail(ctx, 500, errors.New("缓存用户权限失败"))
 					return
 				}
 
 				http.Redirect(w, r, Url, http.StatusFound) //跳转到百度
 				return
-
 
 				//authUrl:="https://acp-test.rp-field.com/api/priv/list?systemCode=x3k6rdghi4cusuoy&companyCode=RPX0001&userCode="+userInfoAuth.UserNo
 				//dataAuthority := utils.HttpGetUrl(authUrl)
@@ -356,8 +356,6 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 	case 5:
 		break
 
-
-	
 	}
 	chain.Next(ctx)
 }
@@ -381,14 +379,16 @@ func (s *LoginFilter) getRequestParam(ctx web.Context, key string) string {
 
 //验证是否是不需要验证登录的路由，如果是不需要登录的直接跳过
 func (s *LoginFilter) isMatch(ctx web.Context) int {
-
+	if !s.isInitMatcher {
 		s.pathMatcher = make([]urlpath.Path, 0, len(s.UrlPatterns))
 		for _, v := range s.UrlPatterns {
 			s.pathMatcher = append(s.pathMatcher, urlpath.New(v))
 		}
+		s.isInitMatcher = true
+	}
 
 	uri := ctx.Request().RequestURI
-	if strings.Contains(uri,"login_ticket") {
+	if strings.Contains(uri, "login_ticket") {
 		return 3
 	}
 	for _, v := range s.pathMatcher {
