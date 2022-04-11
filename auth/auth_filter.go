@@ -18,6 +18,9 @@ import (
 	"github.com/go-spring/spring-core/web"
 )
 
+// 授权应用Key
+const GrantAppKey = "grantApp"
+
 // 授权认证过滤器
 type AuthFilter struct {
 	// 过滤器匹配路由

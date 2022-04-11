@@ -131,9 +131,8 @@ func initRuntimeEnv(application *stark.Application) {
 
 // setupCommonVars setup application global vars.
 func setupCommonVars(application *stark.Application) error {
-	var err error
 	// 安装数据库组件
-	err = setupDatabase(application)
+	err := setupDatabase(application)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 module github.com/ppkg/stark
 
-go 1.18
+go 1.17
 
 require (
 	github.com/go-spring/spring-base v1.1.0-rc3
