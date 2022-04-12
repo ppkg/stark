@@ -43,7 +43,7 @@ func (s *AuthFilter) isMatch(ctx web.Context) bool {
 		}
 	}
 
-	uri := ctx.Request().RequestURI
+	uri := ctx.Request().URL.Path
 	for _, v := range s.pathMatcher {
 		_, ok := v.Match(uri)
 		if ok {
