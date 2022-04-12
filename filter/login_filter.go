@@ -1,4 +1,4 @@
-package auth
+package filter
 
 import (
 	"crypto/md5"
@@ -6,6 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/go-spring/spring-core/web"
 	"github.com/limitedlee/microservice/common/config"
@@ -13,11 +19,6 @@ import (
 	"github.com/maybgit/glog"
 	utils "github.com/ppkg/stark/util"
 	"github.com/ucarion/urlpath"
-	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // 授权认证过滤器
@@ -26,9 +27,10 @@ type LoginFilter struct {
 	UrlPatterns []string
 	// 获取需要认证app信息
 	// 认证失败回调
-	AuthFail    func(ctx web.Context, status int32, err error)
-	pathMatcher []urlpath.Path
-	RedisClient *redis.Client
+	AuthFail      func(ctx web.Context, status int32, err error)
+	pathMatcher   []urlpath.Path
+	RedisClient   *redis.Client
+	isInitMatcher bool
 }
 
 type LoginInfo struct {
@@ -391,10 +393,12 @@ func (s *LoginFilter) getRequestParam(ctx web.Context, key string) string {
 
 //验证是否是不需要验证登录的路由，如果是不需要登录的直接跳过
 func (s *LoginFilter) isMatch(ctx web.Context) int {
-
-	s.pathMatcher = make([]urlpath.Path, 0, len(s.UrlPatterns))
-	for _, v := range s.UrlPatterns {
-		s.pathMatcher = append(s.pathMatcher, urlpath.New(v))
+	if !s.isInitMatcher {
+		s.pathMatcher = make([]urlpath.Path, 0, len(s.UrlPatterns))
+		for _, v := range s.UrlPatterns {
+			s.pathMatcher = append(s.pathMatcher, urlpath.New(v))
+		}
+		s.isInitMatcher = true
 	}
 
 	uri := ctx.Request().RequestURI
