@@ -2,7 +2,7 @@ package filter
 
 import (
 	"encoding/json"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-spring/spring-base/log"
@@ -17,12 +17,9 @@ func RequestLoggerFilter() web.Filter {
 		r := ctx.Request()
 		w := ctx.ResponseWriter()
 		cost := time.Since(start)
-		params := make(url.Values)
-		for k, v := range r.URL.Query() {
-			params[k] = v
-		}
+		params := make(map[string]string)
 		for k, v := range r.PostForm {
-			params[k] = v
+			params[k] = strings.Join(v, ",")
 		}
 		data, _ := json.Marshal(params)
 		log.Ctx(ctx.Context()).Infof("%s %s %s %d %d %s %s", r.Method, r.RequestURI, cost, w.Size(), w.Status(), r.UserAgent(), data)
