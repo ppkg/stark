@@ -1,4 +1,4 @@
-package auth
+package filter
 
 import (
 	"crypto/md5"
