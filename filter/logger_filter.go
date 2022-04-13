@@ -20,6 +20,7 @@ func RequestLoggerFilter() web.Filter {
 		params := make(map[string]string)
 		for k, v := range r.PostForm {
 			params[k] = strings.Join(v, ",")
+			
 		}
 		data, _ := json.Marshal(params)
 		log.Ctx(ctx.Context()).Infof("%s %s %s %d %d %s %s", r.Method, r.RequestURI, cost, w.Size(), w.Status(), r.UserAgent(), data)
