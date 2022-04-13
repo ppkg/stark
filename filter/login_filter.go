@@ -72,13 +72,13 @@ type UserInfoFailure struct {
 }
 
 type UserInfoAuth struct {
-	UserName string `json:"user_name"`
-	Email    string `json:"email"`
-	ID       int    `json:"id"`
-	Mobile   string `json:"mobile"`
-	RealName string `json:"real_name"`
-	UserNo   string `json:"user_no"`
-	UserAuth string `json:"user_auth"`
+	UserName string      `json:"user_name"`
+	Email    string      `json:"email"`
+	ID       int         `json:"id"`
+	Mobile   string      `json:"mobile"`
+	RealName string      `json:"real_name"`
+	UserNo   string      `json:"user_no"`
+	UserAuth interface{} `json:"user_auth"`
 }
 
 type AuthData struct {
@@ -268,13 +268,13 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 					s.AuthFail(ctx, 500, errors.New("获取用户权限失败！"))
 					return
 				}
-
-				beginIndex := strings.Index(authStr, `"operation": {`)
-				endIndex := strings.Index(authStr, `},`)
-				nowStr := authStr[beginIndex+14 : endIndex]
-				nowStr = strings.ReplaceAll(nowStr, " ", "")
-				nowStr = strings.ReplaceAll(nowStr, "\n", "")
-				userInfoAuth.UserAuth = nowStr
+				//
+				//beginIndex := strings.Index(authStr, `"operation": {`)
+				//endIndex := strings.Index(authStr, `},`)
+				//nowStr := authStr[beginIndex+14 : endIndex]
+				//nowStr = strings.ReplaceAll(nowStr, " ", "")
+				//nowStr = strings.ReplaceAll(nowStr, "\n", "")
+				userInfoAuth.UserAuth = baseRes.AuthData.Operation
 				jsonUserAuth, err := json.Marshal(userInfoAuth)
 
 				//2:重新组装jwt用户身份验证
