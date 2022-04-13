@@ -113,7 +113,7 @@ type LoginResponse struct {
 
 //调用北京获取用户权限接口，将结果权限集缓存redis
 func GetUserAuthCollection(systemcode, memberid, structOuterCode string) (string, error) {
-	url := fmt.Sprintf("%s%s", config.GetString("bj-user-auth-url"), "/api/priv/list")
+	url := fmt.Sprintf("%s%s", config.GetString("oms-bj-user-auth-url"), "/api/priv/list")
 
 	url = url + "?systemCode=" + systemcode + "&userCode=" + memberid + "&companyCode=" + structOuterCode
 
