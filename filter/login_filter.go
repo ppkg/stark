@@ -172,8 +172,6 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 		if omsToken == "" {
 			//如果没有token 直接返回失败，调用反返回401
 			s.AuthFail(ctx, 401, errors.New("用户没有登录！"))
-			//w.WriteHeader(401)
-			//w.Write([]byte("用户没有登录"))
 			return
 		} else {
 			//如果 omsToken 不为空，说明已经登录过的，解析token看是否过期,没有过期的话，重新续期
@@ -222,10 +220,6 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				return
 			}
 
-			//3：验证是否有权限
-			//AuthStr, err := Redis.Get(fmt.Sprintf("Boss:auth:%s", claims["mobile"])).Result()
-			//判断是否权限集
-
 			chain.Next(ctx)
 
 		}
@@ -233,32 +227,17 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 	case 3:
 		//如果有ticket说明是跳转cas登录后的回调请求,就可以直接获取权限，否者跳转登录界面
 		ticket := s.getRequestParam(ctx, "ticket")
-		//ticket="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTAwMTY0NDgsIm1vYmlsZSI6Iis4NjEzNTEwNjc2MzExIiwibmFtZSI6Inh1Y3AiLCJ1c2Vybm8iOiJVX1ZORlBJQUgifQ.doEituH32P_ff1VOhJgCCSesJffWYLnbqM6aRLLZChpdUdKMiWJjoOVKPFBK6tL7eOeBFlLv-eI1G9pgNRHFsDgsXe4_8YuncVsWLDgBsXeJmCmND2nCMwWXYAN6UVerwlnlZaxwDGm_lqBFwQs8ArTbzQG2qcNc3-noPv002i8"
 		Url := s.getRequestParam(ctx, "url")
-		//Url="http://local.rprprprp.com:5003/"
 		casUrl := config.GetString("cas.login.url")
 		omsurl := config.GetString("oms.login.url")
 		if ticket == "" {
-			//login_ticket  不存在的路由地址，只要调用的地址包含 login_ticket  就判断是调用登录直接拦截，走登录逻辑
-			//returnUrl:=fmt.Sprintf("%s/cas/login?service=%s?url=%s",casUrl,omsurl,url.QueryEscape(Url))
-			//http.Redirect(w, r, returnUrl, http.StatusFound) //跳转到登录界面
-
-			//returnUrl := fmt.Sprintf("%s/cas/login?service=%s?url=%s", casUrl, omsurl, Url)
 			returnUrl := casUrl + "/cas/login?service=" + url.QueryEscape(omsurl+"?url="+url.QueryEscape(Url))
 			http.Redirect(w, r, returnUrl, http.StatusFound) //跳转到登录界面
 			return
 		} else {
 
 			//通过CAS登录接口验证，获取用户的手机，用户编码， 邮箱等信息
-			getUserInfoUrl := fmt.Sprintf("%s/cas/p3/serviceValidate?format=json&ticket=%s&service=%s?url=%s", casUrl, ticket, omsurl, Url)
-
-			uriall := ctx.Request().URL
-			if uriall.Host == "" {
-
-			}
-
-			getUserInfoUrl = casUrl + "/cas/p3/serviceValidate?format=json&ticket=" + ticket + "&service=" + url.QueryEscape(omsurl+"?url="+Url)
-			//getUserInfoUrl:=fmt.Sprintf("%s/cas/p3/serviceValidate?format=json&ticket=%s&service=%s?url=%s",casUrl,ticket,omsurl,Url)
+			getUserInfoUrl := casUrl + "/cas/p3/serviceValidate?format=json&ticket=" + ticket + "&service=" + url.QueryEscape(omsurl+"?url="+Url)
 			data := utils.HttpGetUrl(getUserInfoUrl)
 			if len(data) > 0 {
 				if strings.Contains(data, "authenticationFailure") {
@@ -284,12 +263,20 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				systemCode := config.GetString("OmsSystemCode")
 				authStr, autherr := GetUserAuthCollection(systemCode, userInfoAuth.UserNo, "RPX0001")
 				var baseRes = UserAuthResponse{}
-
 				err := json.Unmarshal([]byte(authStr), &baseRes)
 				if autherr != nil || err != nil {
 					s.AuthFail(ctx, 500, errors.New("获取用户权限失败！"))
 					return
 				}
+
+				beginIndex := strings.Index(authStr, `"operation": {`)
+				endIndex := strings.Index(authStr, `},`)
+				nowStr := authStr[beginIndex+14 : endIndex]
+				nowStr = strings.ReplaceAll(nowStr, " ", "")
+				nowStr = strings.ReplaceAll(nowStr, "\n", "")
+				userInfoAuth.UserAuth = nowStr
+				jsonUserAuth, err := json.Marshal(userInfoAuth)
+
 				//2:重新组装jwt用户身份验证
 				jwtString, err := utils.CreateJwtToken(userInfoAuth.Mobile, userInfoAuth.UserNo, userInfoAuth.UserName)
 				if err != nil {
@@ -321,7 +308,7 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				ctx.SetCookie(cookie_user)
 
 				//缓存用户权限信息
-				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("oms:auth:%s", userInfoAuth.UserNo), authStr, time.Hour*2).Err()
+				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("oms:auth:%s", userInfoAuth.UserNo), jsonUserAuth, time.Hour*2).Err()
 				if err != nil {
 					s.AuthFail(ctx, 500, errors.New("缓存用户权限失败"))
 					return
@@ -329,47 +316,9 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 
 				http.Redirect(w, r, Url, http.StatusFound) //跳转到百度
 				return
-
-				//authUrl:="https://acp-test.rp-field.com/api/priv/list?systemCode=x3k6rdghi4cusuoy&companyCode=RPX0001&userCode="+userInfoAuth.UserNo
-				//dataAuthority := utils.HttpGetUrl(authUrl)
-				//if len(dataAuthority)>0 {
-				//
-				//	beginIndex:=strings.Index(dataAuthority,`"operation": {`)
-				//	endIndex:=strings.Index(dataAuthority,`},`)
-				//	nowStr:=dataAuthority[beginIndex+14:endIndex]
-				//	nowStr=strings.ReplaceAll(nowStr," ","")
-				//	nowStr=strings.ReplaceAll(nowStr,"\n","")
-				//	userInfoAuth.UserAuth=nowStr
-				//	jsonUser,err:=json.Marshal(userInfoAuth)
-				//	if err!=nil {
-				//		s.AuthFail(ctx, errors.New("数据转JSON出错！"))
-				//	}
-				//	cookie := new(http.Cookie)
-				//	cookie.Name = "oms_token"
-				//	cookie.Value = userInfoAuth.UserNo
-				//	cookie.Path = "/"
-				//	//cookie有效期为3600秒
-				//	cookie.MaxAge = 3600
-				//	//设置cookie
-				//	ctx.SetCookie(cookie)
-				//	//client.Set(key, string(b), time.Minute*60)
-				//	_, err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("Oms:auth:%s", userInfoAuth.UserNo),jsonUser , 3600).Result()
-				//	if err!=nil {
-				//		s.AuthFail(ctx, errors.New("存储权限出错！"))
-				//		return
-				//	}
-				//	http.Redirect(w, r, Url, http.StatusFound) //跳转到百度
-				//	return
-				//}
 			}
 		}
 		break
-	case 4:
-
-		break
-	case 5:
-		break
-
 	}
 	chain.Next(ctx)
 }
@@ -401,7 +350,7 @@ func (s *LoginFilter) isMatch(ctx web.Context) int {
 		s.isInitMatcher = true
 	}
 
-	uri := ctx.Request().RequestURI
+	uri := ctx.Request().URL.Path
 	if strings.Contains(uri, "login_ticket") {
 		return 3
 	}
