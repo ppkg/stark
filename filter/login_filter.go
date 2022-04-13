@@ -308,7 +308,7 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 				ctx.SetCookie(cookie_user)
 
 				//缓存用户权限信息
-				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("oms:auth:%s", userInfoAuth.UserNo), jsonUserAuth, time.Hour*2).Err()
+				err = s.RedisClient.Set(ctx.Context(), fmt.Sprintf("oms:auth:%s", userInfoAuth.UserNo), jsonUserAuth, -1).Err()
 				if err != nil {
 					s.AuthFail(ctx, 500, errors.New("缓存用户权限失败"))
 					return
