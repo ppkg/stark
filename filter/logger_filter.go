@@ -16,6 +16,7 @@ func RequestLoggerFilter() web.Filter {
 		chain.Next(ctx)
 		r := ctx.Request()
 		w := ctx.ResponseWriter()
+		
 		cost := time.Since(start)
 		params := make(map[string]string)
 		for k, v := range r.PostForm {
