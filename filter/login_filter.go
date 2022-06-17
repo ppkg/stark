@@ -353,7 +353,7 @@ func (s *LoginFilter) isMatch(ctx web.Context) int {
 	//if strings.Contains(uri, "login_ticket") {
 	//	return 3
 	//}
-	if strings.Contains(uri, "logout") {
+	if strings.Contains(uri, "logout") || strings.Contains(uri, "login_ticket") {
 		return 1
 	}
 	for _, v := range s.pathMatcher {
