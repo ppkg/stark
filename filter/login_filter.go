@@ -163,7 +163,6 @@ func (s *LoginFilter) Invoke(ctx web.Context, chain web.FilterChain) {
 	case 1:
 		chain.Next(ctx)
 		return
-		break
 	case 2:
 		cookie, _ := ctx.Request().Cookie("oms_token")
 		if cookie != nil {
@@ -351,9 +350,9 @@ func (s *LoginFilter) isMatch(ctx web.Context) int {
 	}
 
 	uri := ctx.Request().URL.Path
-	if strings.Contains(uri, "login_ticket") {
-		return 3
-	}
+	//if strings.Contains(uri, "login_ticket") {
+	//	return 3
+	//}
 	if strings.Contains(uri, "logout") {
 		return 1
 	}
